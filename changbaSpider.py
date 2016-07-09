@@ -69,16 +69,14 @@ class Spider_Model:
             print playlists
         items = [] 
         for item in playlists:  
-            # item 中第一项是href中'/s/'后面的内容，也就是歌曲  
-            # item 中第二项是<a>标签之后，<div>标签之前的内容，也就是歌曲名称
-            print item  
             items.append([item['enworkid'],item['songname']]) 
         self.List = items
   
-    # 将所有的作品都抠出来，添加到列表中并且返回列表  
-    '''def GetList(self,uid):  
-        myUrl = "http://changba.com/u/" + uid  
-        user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)' 
+    # 通过用户主页编号，获取userid  
+    def GetUserid(self,uid):  
+        myUrl = "http://changba.com/u/" + uid
+        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36"\
+                    " (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36" 
         headers = { 'User-Agent' : user_agent } 
         req = urllib2.Request(myUrl, headers = headers) 
         myResponse = urllib2.urlopen(req)
@@ -88,20 +86,16 @@ class Spider_Model:
         unicodePage = myPage.decode("utf-8")  
   
         # 找出所有href以'/s/'开头，且其内部有div class="userPage-work-detail"的标记  
-        #re.S是任意匹配模式，也就是.可以匹配换行符S
-        myItems = re.findall('<a href="/s/(.*?)".*?>(.*?)<div class="userPage-work-detail">.*?</a>',unicodePage,re.S)  
-        items = [] 
-        for item in myItems:  
-            # item 中第一项是href中'/s/'后面的内容，也就是歌曲  
-            # item 中第二项是<a>标签之后，<div>标签之前的内容，也就是歌曲名称  
-            items.append([item[0].replace("\n",""),item[1].replace("\n","").replace("\t","").replace("\r","")]) 
-        self.List = items'''
-  
-  
-    
+        #re.S是任意匹配模式，也就是.可以匹配换行符S  userid = '(\d+)';
+        myItems = re.findall("var userid = '(\d+)'",unicodePage,re.S)  
+        for Item in myItems:           
+            if(Item!=None):
+                return Item
+            else:
+                return
           
     #根据mp3url查找MP3链接并下载     
-    def Download(self,mp3url,mp3nm):
+    def Download(self,mp3url,mp3nm,uid):
         rstr = r"[\/\\\:\*\?\"\<\>\|]"  # '/\:*?"<>|'
         mp3renm = re.sub(rstr, "", mp3nm) #剔除非法的文件名字符串
         myUrl = "http://changba.com/s/" + mp3url  
@@ -115,25 +109,35 @@ class Spider_Model:
         unicodePage = myPage.decode("utf-8")  
   
         #找出其中的mp3文件的链接地址，
-        #re.S是任意匹配模式，也就是.可以匹配换行符S '[^a="]http://(\w+).mp3
-        myItems = re.search("http://(\w+).changba.com/(\S+)(\d+).mp3",unicodePage)
+        #re.S是任意匹配模式，也就是.可以匹配换行符S '[^a="]http://(\w+).mp3  http://.*?.changba.com/.*?d+.mp3
+        myItems = re.search("http://(\S+).changba.com/(\S+)(\d+).mp3",unicodePage)
+        savePath = os.path.expanduser(r'~/Downloads/%s' % uid)#下载路径在用户文件夹下
+        if not os.path.isdir(savePath):
+            os.makedirs(savePath)
         if(myItems!=None):
             downurl=myItems.group()
-            #文件存储在用户文件夹下
-            urllib.urlretrieve(downurl,os.path.expanduser('~/Downloads/%s.mp3' % mp3renm))
-            print "mp3文件下载完成"
+            try:
+                f = urllib2.urlopen(downurl) 
+                data = f.read() 
+                with open(savePath+"/"+ mp3renm+".mp3",'w+b') as code:     
+                    code.write(data)
+                print mp3renm, "下载成功"
+                code.close()
+            except IOError,e:
+                print("open exception: %s: %s\n" %(e.errno, e.strerror)) 
+                print mp3renm,"下载失败"
         else:
             print "未找到MP3文件" 
           
     def Start(self):  
   
         print u'正在下载请稍候......'  
-          
-        self.getNewlist(self.uid)  
+        userid=self.GetUserid(self.uid)
+        self.getNewlist(userid)  
         count = 1  
         for item in self.List:
             print u'正在下载第',count,"首歌"
-            self.Download(item[0], item[1])
+            self.Download(item[0], item[1],self.uid)
             #print item
             count+=1
 
