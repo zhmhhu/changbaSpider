@@ -130,13 +130,15 @@ class Spider_Model:
             print "未找到MP3文件" 
           
     def Start(self):  
-  
+        import thread  
         print u'正在下载请稍候......'  
         userid=self.GetUserid(self.uid)
         self.getNewlist(userid)  
         count = 1  
         for item in self.List:
             print u'正在下载第',count,"首歌"
+            # 新建一个线程在后台下载歌曲
+#             thread.start_new_thread(self.Download(item[0], item[1],self.uid),())  
             self.Download(item[0], item[1],self.uid)
             #print item
             count+=1
@@ -152,13 +154,13 @@ print u"""
    作者：zhm 
    日期：2016-07-02 
    语言：Python 2.7 
-   操作：输入用户id并按下回车 
-   说明：用户id是指用户主页链接尾部的一串数字，例如http://changba.com/u/90092393
+   操作：输入用户主页编号并按下回车 
+   说明：用户用户主页编号是指用户主页链接尾部的一串数字
    功能：依次下载该用户唱的歌曲 
 --------------------------------------- 
 """
   
-print u'请输入用户id并按下回车：'  
+print u'请输入用户主页编号并按下回车：'  
 userid=raw_input('')  
 myModel = Spider_Model(userid)  
 myModel.Start()  
